@@ -61,7 +61,7 @@ func main() {
 
 	buf := new(bytes.Buffer)
 	for _, p := range plugins {
-		sum, err := sha256sum(filepath.Join(outputPath, "bin", p.Command))
+		sum, err := sha256sum(filepath.Join(outputPath, "libexec", "vault-plugins", p.Command))
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
@@ -75,7 +75,7 @@ func main() {
 		buf.WriteString(escapeShellArg(p.Command))
 		if p.Version != "" {
 			buf.WriteString(" -version=")
-			buf.WriteString(escapeShellArg(p.Version))
+			buf.WriteString(escapeShellArg("v" + p.Version))
 		}
 		buf.WriteString(" ")
 		buf.WriteString(escapeShellArg(p.Type))

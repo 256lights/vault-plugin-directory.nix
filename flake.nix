@@ -24,7 +24,7 @@
         inherit (pkgs.lib.meta) getExe;
         inherit (pkgs.lib.strings) concatLines escapeShellArg getName optionalString removePrefix;
 
-        registerScriptName = "register-vault-plugins.sh";
+        registerScriptName = "register-vault-plugins";
 
         commandPrefix = "vault-plugin-";
 
@@ -40,7 +40,7 @@
             {
               inherit type pname version command;
               script = ''
-                makeWrapper ${escapeShellArg (getExe binary)} "$out/bin/${command}"
+                makeWrapper ${escapeShellArg (getExe binary)} "$out/libexec/vault-plugins/${command}"
               '';
             }
           ) plugins;
@@ -52,15 +52,16 @@
           meta.mainProgram = "make_register_script";
         };
       in
-        pkgs.runCommandLocal "vault-plugin-directory" {
+        pkgs.runCommandLocal "vault-plugins" {
           nativeBuildInputs = [ pkgs.makeBinaryWrapper ];
           plugins = builtins.toJSON (map (p: builtins.removeAttrs p [ "script" ]) plugins');
           passAsFile = [ "plugins" ];
           inherit scriptWriter;
         } (''
-          mkdir -p "$out/bin"
+          mkdir -p "$out/libexec/vault-plugins"
           ${concatLines (map (p: p.script) plugins')}
 
+          mkdir -p "$out/bin"
           echo ${escapeShellArg ("#!" + pkgs.runtimeShell)} > "$out/bin/${registerScriptName}"
           echo 'set -euo pipefail' >> "$out/bin/${registerScriptName}"
           ${getExe scriptWriter} >> "$out/bin/${registerScriptName}"

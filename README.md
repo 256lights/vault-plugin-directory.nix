@@ -6,8 +6,8 @@ This function takes in the following parameter attribute set:
 
 ```plain
 {
-  plugins :: [ plugin set (see below) ],
-  pkgs :: nixpkgs,
+  pkgs :: nixpkgs;
+  plugins :: [ plugin set (see below) ];
 }
 ```
 
@@ -15,16 +15,16 @@ A plugin set is defined as:
 
 ```plain
 {
-  binary :: derivation,
-  [ type :: "secret" | "auth" | "database", ]
-  [ pname :: string, ]
-  [ version :: string ]
+  binary :: derivation;
+  [ type :: "secret" | "auth" | "database"; ]
+  [ pname :: string; ]
+  [ version :: string; ]
 }
 ```
 
 `mkPluginDirectory` will return a derivation
-with a `bin` directory containing all the listed plugins
-as well as a `register-vault-plugins.sh` script
+with a `libexec/vault-plugins` directory containing all the listed plugins
+as well as a `bin/register-vault-plugins` script
 that will register all the plugins using the Vault CLI.
 
 ## Example
