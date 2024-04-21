@@ -26,25 +26,40 @@
 
         registerScriptName = "register-vault-plugins.sh";
 
-        pluginScript = { binary
-          , type ? "secret"
-          , pname ? getName binary
-          , version ? binary.version or ""
-          }:
-          let
-            exePath = getExe binary;
-            command = pname + (optionalString (version != "") "-${version}");
-          in ''
-            ln -s ${escapeShellArg exePath} "$out/bin/${command}"
-            sum="$(sha256sum ${escapeShellArg exePath} | cut --delimiter=' ' --fields=1)"
-            echo vault plugin register -sha256="$sum" -command=${escapeShellArg command} -version=${escapeShellArg version} ${escapeShellArg type} ${escapeShellArg pname} >> "$out/bin/${registerScriptName}"
-          '';
+        plugins' = map
+          ({ binary
+           , type ? "secret"
+           , pname ? getName binary
+           , version ? binary.version or ""
+           }: {
+            inherit type pname version;
+            script = let
+                exePath = getExe binary;
+                command = pname + (optionalString (version != "") "-${version}");
+              in ''
+                makeWrapper ${escapeShellArg exePath} "$out/bin/${command}"
+              '';
+          }) plugins;
+
+        scriptWriter = pkgs.buildGoModule {
+          name = "make_register_script";
+          src = ./make_register_script;
+          vendorHash = null;
+          meta.mainProgram = "make_register_script";
+        };
       in
-        pkgs.runCommandLocal "vault-plugin-directory" {} (''
+        pkgs.runCommandLocal "vault-plugin-directory" {
+          nativeBuildInputs = [ pkgs.makeBinaryWrapper ];
+          plugins = builtins.toJSON (map (p: builtins.removeAttrs p [ "script" ]) plugins');
+          passAsFile = [ "plugins" ];
+          inherit scriptWriter;
+        } (''
           mkdir -p "$out/bin"
+          ${concatLines (map (p: p.script) plugins')}
+
           echo ${escapeShellArg ("#!" + pkgs.runtimeShell)} > "$out/bin/${registerScriptName}"
           echo 'set -euo pipefail' >> "$out/bin/${registerScriptName}"
-          ${concatLines (map pluginScript plugins)}
+          ${getExe scriptWriter} >> "$out/bin/${registerScriptName}"
           chmod +x "$out/bin/${registerScriptName}"
         '');
   };
