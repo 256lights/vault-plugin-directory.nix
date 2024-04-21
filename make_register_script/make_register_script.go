@@ -47,9 +47,10 @@ func main() {
 		os.Exit(1)
 	}
 	var plugins []struct {
-		Type        string `json:"type"`
-		ProgramName string `json:"pname"`
-		Version     string `json:"version"`
+		Type       string `json:"type"`
+		PluginName string `json:"pname"`
+		Version    string `json:"version"`
+		Command    string `json:"command"`
 	}
 	if err := json.Unmarshal(pluginsData, &plugins); err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -60,11 +61,7 @@ func main() {
 
 	buf := new(bytes.Buffer)
 	for _, p := range plugins {
-		command := p.ProgramName
-		if p.Version != "" {
-			command += "-" + p.Version
-		}
-		sum, err := sha256sum(filepath.Join(outputPath, "bin", command))
+		sum, err := sha256sum(filepath.Join(outputPath, "bin", p.Command))
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
@@ -75,7 +72,7 @@ func main() {
 		buf.WriteString(" plugin register -sha256=")
 		buf.WriteString(sum)
 		buf.WriteString(" -command=")
-		buf.WriteString(escapeShellArg(command))
+		buf.WriteString(escapeShellArg(p.Command))
 		if p.Version != "" {
 			buf.WriteString(" -version=")
 			buf.WriteString(escapeShellArg(p.Version))
@@ -83,7 +80,7 @@ func main() {
 		buf.WriteString(" ")
 		buf.WriteString(escapeShellArg(p.Type))
 		buf.WriteString(" ")
-		buf.WriteString(escapeShellArg(p.ProgramName))
+		buf.WriteString(escapeShellArg(p.PluginName))
 		buf.WriteString("\n")
 		if _, err := os.Stdout.Write(buf.Bytes()); err != nil {
 			fmt.Fprintln(os.Stderr, err)

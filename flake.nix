@@ -22,24 +22,28 @@
       let
         inherit (builtins) map;
         inherit (pkgs.lib.meta) getExe;
-        inherit (pkgs.lib.strings) concatLines escapeShellArg getName optionalString;
+        inherit (pkgs.lib.strings) concatLines escapeShellArg getName optionalString removePrefix;
 
         registerScriptName = "register-vault-plugins.sh";
+
+        commandPrefix = "vault-plugin-";
 
         plugins' = map
           ({ binary
            , type ? "secret"
-           , pname ? getName binary
+           , pname ? removePrefix commandPrefix (getName binary)
            , version ? binary.version or ""
-           }: {
-            inherit type pname version;
-            script = let
-                exePath = getExe binary;
-                command = pname + (optionalString (version != "") "-${version}");
-              in ''
-                makeWrapper ${escapeShellArg exePath} "$out/bin/${command}"
+           }:
+            let
+              command = commandPrefix + pname + (optionalString (version != "") "-${version}");
+            in
+            {
+              inherit type pname version command;
+              script = ''
+                makeWrapper ${escapeShellArg (getExe binary)} "$out/bin/${command}"
               '';
-          }) plugins;
+            }
+          ) plugins;
 
         scriptWriter = pkgs.buildGoModule {
           name = "make_register_script";
