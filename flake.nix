@@ -18,7 +18,7 @@
   description = "Helper for creating a Vault plugin directory";
 
   outputs = { ... }: {
-    lib.mkPluginDirectory = { plugins, pkgs }:
+    lib.mkPluginDirectory = { plugins, pkgs, vaultPackage ? pkgs.vault }:
       let
         inherit (builtins) map;
         inherit (pkgs.lib.meta) getExe;
@@ -64,7 +64,7 @@
           mkdir -p "$out/bin"
           echo ${escapeShellArg ("#!" + pkgs.runtimeShell)} > "$out/bin/${registerScriptName}"
           echo 'set -euo pipefail' >> "$out/bin/${registerScriptName}"
-          ${getExe scriptWriter} >> "$out/bin/${registerScriptName}"
+          ${getExe scriptWriter} -vault ${getExe (vaultPackage)} >> "$out/bin/${registerScriptName}"
           chmod +x "$out/bin/${registerScriptName}"
         '');
   };
